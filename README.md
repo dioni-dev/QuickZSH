@@ -18,7 +18,6 @@
 
 ## Demo
 Your command prompt will look like this (easily customizable):
-![prompt](https://user-images.githubusercontent.com/8462091/43674765-8bb13a76-9817-11e8-8b7b-16b8b1998408.png)
 ![image](https://github.com/dioni-dev/QuickZSH/assets/58851263/29ef0753-7ef7-4f6b-867f-5a51711768be)
 
 - User : Directory : Git stats : Last command exit code : Free memory : Load : Time
