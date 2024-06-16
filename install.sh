@@ -211,19 +211,39 @@ fi
 # Final Instructions
 # ========================================
 
+# ========================================
+# Final Instructions
+# ========================================
+
+change_shell() {
+    local user=$1
+    if [ "$EUID" -eq 0 ]; then
+        # Si se está ejecutando como root, cambia el shell del usuario root.
+        echo -e "\nChanging default shell to zsh for user $user\n"
+        chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
+    else
+        # Si no se está ejecutando como root, necesita sudo.
+        echo -e "\nSudo access is needed to change default shell\n"
+        sudo chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
+    fi
+}
+
 if [ "$noninteractive_flag" = true ]; then
     echo -e "Installation complete, exit terminal and enter a new zsh session\n"
     echo -e "Make sure to change zsh to default shell by running: chsh -s $(which zsh)"
     echo -e "In a new zsh session manually run: build-fzf-tab-module"
 else
-    # source ~/.zshrc
-    echo -e "\nSudo access is needed to change default shell\n"
+    # Detectar el usuario actual
+    current_user=$(whoami)
 
-    if chsh -s $(which zsh) && /bin/zsh -i -c 'omz update'; then
+    # Cambiar el shell del usuario actual
+    change_shell "$current_user"
+
+    if [ $? -eq 0 ]; then
         echo -e "Installation complete, exit terminal and enter a new zsh session"
         echo -e "In a new zsh session manually run: build-fzf-tab-module"
     else
-        echo -e "Something is wrong"
+        echo -e "Something went wrong"
     fi
 fi
 exit
