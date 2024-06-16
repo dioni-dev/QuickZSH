@@ -21,8 +21,6 @@ Your command prompt will look like this (easily customizable):
 ![prompt](https://user-images.githubusercontent.com/8462091/43674765-8bb13a76-9817-11e8-8b7b-16b8b1998408.png)
 - User : Directory : Git stats : Last command exit code : Free memory : Load : Time
 
-Watch the demo to see what your shell could look like:
-[![asciicast](https://asciinema.org/a/225226.svg)](https://asciinema.org/a/225226)
 
 ## Installation
 ### Requirements
