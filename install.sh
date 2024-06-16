@@ -82,11 +82,8 @@ fi
 # Copy Configuration Files
 # ========================================
 
-# Obtén el directorio del script actual
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-cp -f "$SCRIPT_DIR/.zshrc" ~/
-cp -f "$SCRIPT_DIR/qzshrc.zsh" ~/.config/qzsh/
+cp -f .zshrc ~/
+cp -f qzshrc.zsh ~/.config/qzsh/
 
 # ========================================
 # Setup Directories for Configurations and Cache
@@ -180,9 +177,13 @@ else
     echo -e "todo.sh is already installed in ~/.config/qzsh/todo/bin/\n"
 fi
 
+
 # ========================================
 # History Migration
 # ========================================
+
+# Obtén el directorio del script actual
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ "$cp_hist_flag" = true ]; then
     if [ -f ~/.bash_history ]; then
@@ -203,20 +204,24 @@ else
     echo -e "\nNot copying bash_history to zsh_history, as --cp-hist or -c is not supplied\n"
 fi
 
+
+
+
 # ========================================
 # Final Instructions
 # ========================================
+
 
 change_shell() {
     local user=$1
     if [ "$EUID" -eq 0 ]; then
         # Si se está ejecutando como root, cambia el shell del usuario especificado.
         echo -e "\nChanging default shell to zsh for user $user\n"
-        chsh -s $(which zsh) "$user"
+        chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
     else
         # Si no se está ejecutando como root, necesita sudo.
         echo -e "\nSudo access is needed to change default shell\n"
-        sudo chsh -s $(which zsh) "$user"
+        sudo chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
     fi
 }
 
@@ -237,15 +242,6 @@ get_local_user() {
     echo "$local_user"
 }
 
-# Crear .zshrc y qzshrc.zsh si no existen
-create_zshrc() {
-    local user_home=$(eval echo "~$1")
-    mkdir -p "$user_home/.config/qzsh"
-    cp -f "$SCRIPT_DIR/.zshrc" "$user_home/"
-    cp -f "$SCRIPT_DIR/qzshrc.zsh" "$user_home/.config/qzsh/"
-    echo -e "\nCopied .zshrc and qzshrc.zsh for user $1\n"
-}
-
 if [ "$noninteractive_flag" = true ]; then
     echo -e "Installation complete, exit terminal and enter a new zsh session\n"
     echo -e "Make sure to change zsh to default shell by running: chsh -s $(which zsh)"
@@ -257,14 +253,12 @@ else
     # Cambiar el shell del usuario actual
     change_shell "$current_user"
     verify_shell_change "$current_user"
-    create_zshrc "$current_user"
 
     # Detectar el usuario local no root
     local_user=$(get_local_user)
     if [ -n "$local_user" ] && [ "$current_user" == "root" ]; then
         change_shell "$local_user"
         verify_shell_change "$local_user"
-        create_zshrc "$local_user"
     fi
 
     if [ $? -eq 0 ]; then
@@ -275,4 +269,3 @@ else
     fi
 fi
 exit
-
