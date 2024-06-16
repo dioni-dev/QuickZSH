@@ -82,8 +82,11 @@ fi
 # Copy Configuration Files
 # ========================================
 
-cp -f .zshrc ~/
-cp -f qzshrc.zsh ~/.config/qzsh/
+# Obtén el directorio del script actual
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cp -f "$SCRIPT_DIR/.zshrc" ~/
+cp -f "$SCRIPT_DIR/qzshrc.zsh" ~/.config/qzsh/
 
 # ========================================
 # Setup Directories for Configurations and Cache
@@ -181,9 +184,6 @@ fi
 # History Migration
 # ========================================
 
-# Obtén el directorio del script actual
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 if [ "$cp_hist_flag" = true ]; then
     if [ -f ~/.bash_history ]; then
         echo -e "\nCopying bash_history to zsh_history\n"
@@ -240,8 +240,8 @@ get_local_user() {
 # Crear .zshrc y qzshrc.zsh si no existen
 create_zshrc() {
     local user_home=$(eval echo "~$1")
-    cp -f .zshrc "$user_home/"
-    cp -f qzshrc.zsh "$user_home/.config/qzsh/"
+    cp -f "$SCRIPT_DIR/.zshrc" "$user_home/"
+    cp -f "$SCRIPT_DIR/qzshrc.zsh" "$user_home/.config/qzsh/"
     echo -e "\nCopied .zshrc and qzshrc.zsh for user $1\n"
 }
 
