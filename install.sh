@@ -177,26 +177,35 @@ else
     echo -e "todo.sh is already installed in ~/.config/qzsh/todo/bin/\n"
 fi
 
+
 # ========================================
 # History Migration
 # ========================================
 
+# Obtén el directorio del script actual
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [ "$cp_hist_flag" = true ]; then
-    echo -e "\nCopying bash_history to zsh_history\n"
-    if command -v python &>/dev/null; then
-        wget -q --show-progress https://gist.githubusercontent.com/muendelezaji/c14722ab66b505a49861b8a74e52b274/raw/49f0fb7f661bdf794742257f58950d209dd6cb62/bash-to-zsh-hist.py
-        cat ~/.bash_history | python bash-to-zsh-hist.py >> ~/.zsh_history
-    else
-        if command -v python3 &>/dev/null; then
-            wget -q --show-progress https://gist.githubusercontent.com/muendelezaji/c14722ab66b505a49861b8a74e52b274/raw/49f0fb7f661bdf794742257f58950d209dd6cb62/bash-to-zsh-hist.py
-            cat ~/.bash_history | python3 bash-to-zsh-hist.py >> ~/.zsh_history
+    if [ -f ~/.bash_history ]; then
+        echo -e "\nCopying bash_history to zsh_history\n"
+        if command -v python &>/dev/null; then
+            cat ~/.bash_history | python "$SCRIPT_DIR/bash-to-zsh-hist.py" >> ~/.zsh_history
         else
-            echo "Python is not installed, can't copy bash_history to zsh_history\n"
+            if command -v python3 &>/dev/null; then
+                cat ~/.bash_history | python3 "$SCRIPT_DIR/bash-to-zsh-hist.py" >> ~/.zsh_history
+            else
+                echo "Python is not installed, can't copy bash_history to zsh_history\n"
+            fi
         fi
+    else
+        echo -e "\nNo bash_history file found, skipping history migration\n"
     fi
 else
     echo -e "\nNot copying bash_history to zsh_history, as --cp-hist or -c is not supplied\n"
 fi
+
+
+
 
 # ========================================
 # Final Instructions
