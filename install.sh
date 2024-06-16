@@ -30,11 +30,11 @@ done
 
 # Check if zsh, git, and wget are installed
 if command -v zsh &> /dev/null && command -v git &> /dev/null && command -v wget &> /dev/null; then
-    echo -e "ZSH and Git are already installed\n"
+    echo -e "ZSH, Git, and Wget are already installed\n"
 else
     # Try to install dependencies using various package managers
     if sudo apt install -y zsh git wget autoconf || sudo pacman -S zsh git wget || sudo dnf install -y zsh git wget || sudo yum install -y zsh git wget || sudo brew install git zsh wget || pkg install git zsh wget ; then
-        echo -e "zsh wget and git Installed\n"
+        echo -e "zsh, wget, and git Installed\n"
     else
         echo -e "Please install the following packages first, then try again: zsh git wget\n" && exit
     fi
@@ -45,183 +45,159 @@ fi
 # ========================================
 
 # Backup the current .zshrc if it exists
-if mv -n ~/.zshrc ~/.zshrc-backup-$(date +"%Y-%m-%d"); then
-    echo -e "Backed up the current .zshrc to .zshrc-backup-date\n"
-fi
-
-# ========================================
-# Setup Directories
-# ========================================
-
-echo -e "The setup will be installed in '~/.config/qzsh'\n"
-echo -e "Place your personal zshrc config files under '~/.config/qzsh/zshrc/'\n"
-mkdir -p ~/.config/qzsh/zshrc
-
-if [ -d ~/.quickzsh ]; then
-    echo -e "\n PREVIOUS SETUP FOUND AT '~/.quickzsh'. PLEASE MANUALLY MOVE ANY FILES YOU'D LIKE TO '~/.config/qzsh' \n"
-fi
+backup_zshrc() {
+    local user_home=$(eval echo "~$1")
+    if [ -f "$user_home/.zshrc" ]; then
+        mv "$user_home/.zshrc" "$user_home/.zshrc-backup-$(date +"%Y-%m-%d")"
+        echo -e "Backed up the current .zshrc for user $1\n"
+    fi
+}
 
 # ========================================
 # Install Oh My Zsh
 # ========================================
 
-echo -e "Installing oh-my-zsh\n"
-if [ -d ~/.config/qzsh/oh-my-zsh ]; then
-    echo -e "oh-my-zsh is already installed\n"
-    git -C ~/.config/qzsh/oh-my-zsh remote set-url origin https://github.com/ohmyzsh/ohmyzsh.git
-elif [ -d ~/.oh-my-zsh ]; then
-    echo -e "oh-my-zsh is already installed at '~/.oh-my-zsh'. Moving it to '~/.config/qzsh/oh-my-zsh'\n"
-    export ZSH="$HOME/.config/qzsh/oh-my-zsh"
-    mv ~/.oh-my-zsh ~/.config/qzsh/oh-my-zsh
-    git -C ~/.config/qzsh/oh-my-zsh remote set-url origin https://github.com/ohmyzsh/ohmyzsh.git
-else
-    git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git ~/.config/qzsh/oh-my-zsh
-fi
+install_oh_my_zsh() {
+    local user_home=$(eval echo "~$1")
+    local zsh_dir="$user_home/.config/qzsh/oh-my-zsh"
+    mkdir -p "$zsh_dir"
+    if [ -d "$zsh_dir" ]; then
+        echo -e "Installing oh-my-zsh for user $1\n"
+        git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$zsh_dir"
+    fi
+}
 
 # ========================================
 # Copy Configuration Files
 # ========================================
 
-cp -f .zshrc ~/
-cp -f qzshrc.zsh ~/.config/qzsh/
+copy_config_files() {
+    local user_home=$(eval echo "~$1")
+    cp -f "$SCRIPT_DIR/.zshrc" "$user_home/"
+    mkdir -p "$user_home/.config/qzsh"
+    cp -f "$SCRIPT_DIR/qzshrc.zsh" "$user_home/.config/qzsh/"
+    echo -e "\nCopied .zshrc and qzshrc.zsh for user $1\n"
+}
 
 # ========================================
 # Setup Directories for Configurations and Cache
 # ========================================
 
-mkdir -p ~/.config/qzsh/zshrc  # Place your zshrc configurations over there
-mkdir -p ~/.cache/zsh/  # Store zsh completion cache files here
-mkdir -p ~/.fonts  # Create .fonts if it doesn't exist
-
-# Move zsh completion dump files to cache directory
-if [ -f ~/.zcompdump ]; then
-    mv ~/.zcompdump* ~/.cache/zsh/
-fi
+setup_directories() {
+    local user_home=$(eval echo "~$1")
+    mkdir -p "$user_home/.config/qzsh/zshrc"
+    mkdir -p "$user_home/.cache/zsh/"
+    mkdir -p "$user_home/.fonts"
+    echo -e "Directories setup for user $1\n"
+}
 
 # ========================================
 # Install Plugins
 # ========================================
+
+install_plugins() {
+    local user_home=$(eval echo "~$1")
+    local zsh_dir="$user_home/.config/qzsh/oh-my-zsh"
+    install_or_update_repo https://github.com/zsh-users/zsh-autosuggestions "$zsh_dir/plugins/zsh-autosuggestions"
+    install_or_update_repo https://github.com/zsh-users/zsh-syntax-highlighting.git "$zsh_dir/custom/plugins/zsh-syntax-highlighting"
+    install_or_update_repo https://github.com/zsh-users/zsh-completions "$zsh_dir/custom/plugins/zsh-completions"
+    install_or_update_repo https://github.com/zsh-users/zsh-history-substring-search "$zsh_dir/custom/plugins/zsh-history-substring-search"
+    install_or_update_repo https://github.com/romkatv/powerlevel10k.git "$zsh_dir/custom/themes/powerlevel10k"
+    install_or_update_repo https://github.com/junegunn/fzf.git "$user_home/.config/qzsh/fzf"
+    "$user_home/.config/qzsh/fzf/install" --all --key-bindings --completion --no-update-rc
+    install_or_update_repo https://github.com/Aloxaf/fzf-tab "$zsh_dir/custom/plugins/fzf-tab"
+    install_or_update_repo https://github.com/jotyGill/marker "$user_home/.config/qzsh/marker"
+    if "$user_home/.config/qzsh/marker/install.py"; then
+        echo -e "Installed Marker for user $1\n"
+    else
+        echo -e "Marker Installation Had Issues for user $1\n"
+    fi
+}
 
 # Function to install or update a git repository
 install_or_update_repo() {
     local repo_url=$1
     local target_dir=$2
 
-    if [ -d $target_dir ]; then
-        cd $target_dir && git pull
+    if [ -d "$target_dir" ]; then
+        cd "$target_dir" && git pull
     else
-        git clone --depth=1 $repo_url $target_dir
+        git clone --depth=1 "$repo_url" "$target_dir"
     fi
 }
-
-# Install or update zsh-autosuggestions
-install_or_update_repo https://github.com/zsh-users/zsh-autosuggestions ~/.config/qzsh/oh-my-zsh/plugins/zsh-autosuggestions
-
-# Install or update zsh-syntax-highlighting
-install_or_update_repo https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.config/qzsh/oh-my-zsh/custom/plugins/zsh-syntax-highlighting
-
-# Install or update zsh-completions
-install_or_update_repo https://github.com/zsh-users/zsh-completions ~/.config/qzsh/oh-my-zsh/custom/plugins/zsh-completions
-
-# Install or update zsh-history-substring-search
-install_or_update_repo https://github.com/zsh-users/zsh-history-substring-search ~/.config/qzsh/oh-my-zsh/custom/plugins/zsh-history-substring-search
 
 # ========================================
 # Install Fonts
 # ========================================
 
-echo -e "Installing Nerd Fonts version of Hack, Roboto Mono, DejaVu Sans Mono\n"
-
-wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/Hack/Regular/HackNerdFont-Regular.ttf -P ~/.fonts/
-wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/RobotoMono/Regular/RobotoMonoNerdFont-Regular.ttf -P ~/.fonts/
-wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/DejaVuSansMono/Regular/DejaVuSansMNerdFont-Regular.ttf -P ~/.fonts/
-
-fc-cache -fv ~/.fonts
-
-# ========================================
-# Install Themes and Additional Plugins
-# ========================================
-
-# Install or update Powerlevel10k theme
-install_or_update_repo https://github.com/romkatv/powerlevel10k.git ~/.config/qzsh/oh-my-zsh/custom/themes/powerlevel10k
-
-# Install or update fzf
-install_or_update_repo https://github.com/junegunn/fzf.git ~/.config/qzsh/fzf
-~/.config/qzsh/fzf/install --all --key-bindings --completion --no-update-rc
-
-# Install or update fzf-tab
-install_or_update_repo https://github.com/Aloxaf/fzf-tab ~/.config/qzsh/oh-my-zsh/custom/plugins/fzf-tab
-
-# Install or update marker
-install_or_update_repo https://github.com/jotyGill/marker ~/.config/qzsh/marker
-
-if ~/.config/qzsh/marker/install.py; then
-    echo -e "Installed Marker\n"
-else
-    echo -e "Marker Installation Had Issues\n"
-fi
+install_fonts() {
+    local user_home=$(eval echo "~$1")
+    wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/Hack/Regular/HackNerdFont-Regular.ttf -P "$user_home/.fonts/"
+    wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/RobotoMono/Regular/RobotoMonoNerdFont-Regular.ttf -P "$user_home/.fonts/"
+    wget -q --show-progress -N https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/DejaVuSansMono/Regular/DejaVuSansMNerdFont-Regular.ttf -P "$user_home/.fonts/"
+    fc-cache -fv "$user_home/.fonts"
+    echo -e "Installed Nerd Fonts for user $1\n"
+}
 
 # ========================================
 # Install todo.txt-cli
 # ========================================
 
-if [ ! -L ~/.config/qzsh/todo/bin/todo.sh ]; then
-    echo -e "Installing todo.sh in ~/.config/qzsh/todo\n"
-    mkdir -p ~/.config/qzsh/bin
-    mkdir -p ~/.config/qzsh/todo
-    wget -q --show-progress "https://github.com/todotxt/todo.txt-cli/releases/download/v2.12.0/todo.txt_cli-2.12.0.tar.gz" -P ~/.config/qzsh/
-    tar xvf ~/.config/qzsh/todo.txt_cli-2.12.0.tar.gz -C ~/.config/qzsh/todo --strip 1 && rm ~/.config/qzsh/todo.txt_cli-2.12.0.tar.gz
-    ln -s -f ~/.config/qzsh/todo/todo.sh ~/.config/qzsh/bin/todo.sh  # Include todo.sh in $PATH
-    ln -s -f ~/.config/qzsh/todo/todo.cfg ~/.todo.cfg  # Link todo.cfg
-else
-    echo -e "todo.sh is already installed in ~/.config/qzsh/todo/bin/\n"
-fi
-
+install_todo_cli() {
+    local user_home=$(eval echo "~$1")
+    if [ ! -L "$user_home/.config/qzsh/todo/bin/todo.sh" ]; then
+        echo -e "Installing todo.sh in ~/.config/qzsh/todo for user $1\n"
+        mkdir -p "$user_home/.config/qzsh/bin"
+        mkdir -p "$user_home/.config/qzsh/todo"
+        wget -q --show-progress "https://github.com/todotxt/todo.txt-cli/releases/download/v2.12.0/todo.txt_cli-2.12.0.tar.gz" -P "$user_home/.config/qzsh/"
+        tar xvf "$user_home/.config/qzsh/todo.txt_cli-2.12.0.tar.gz" -C "$user_home/.config/qzsh/todo" --strip 1 && rm "$user_home/.config/qzsh/todo.txt_cli-2.12.0.tar.gz"
+        ln -s -f "$user_home/.config/qzsh/todo/todo.sh" "$user_home/.config/qzsh/bin/todo.sh"
+        ln -s -f "$user_home/.config/qzsh/todo/todo.cfg" "$user_home/.todo.cfg"
+    else
+        echo -e "todo.sh is already installed in ~/.config/qzsh/todo/bin/ for user $1\n"
+    fi
+}
 
 # ========================================
 # History Migration
 # ========================================
 
-# Obtén el directorio del script actual
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if [ "$cp_hist_flag" = true ]; then
-    if [ -f ~/.bash_history ]; then
-        echo -e "\nCopying bash_history to zsh_history\n"
-        if command -v python &>/dev/null; then
-            cat ~/.bash_history | python "$SCRIPT_DIR/bash-to-zsh-hist.py" >> ~/.zsh_history
-        else
-            if command -v python3 &>/dev/null; then
-                cat ~/.bash_history | python3 "$SCRIPT_DIR/bash-to-zsh-hist.py" >> ~/.zsh_history
+migrate_history() {
+    local user_home=$(eval echo "~$1")
+    if [ "$cp_hist_flag" = true ]; then
+        if [ -f "$user_home/.bash_history" ]; then
+            echo -e "\nCopying bash_history to zsh_history for user $1\n"
+            if command -v python &>/dev/null; then
+                cat "$user_home/.bash_history" | python "$SCRIPT_DIR/bash-to-zsh-hist.py" >> "$user_home/.zsh_history"
             else
-                echo "Python is not installed, can't copy bash_history to zsh_history\n"
+                if command -v python3 &>/dev/null; then
+                    cat "$user_home/.bash_history" | python3 "$SCRIPT_DIR/bash-to-zsh-hist.py" >> "$user_home/.zsh_history"
+                else
+                    echo "Python is not installed, can't copy bash_history to zsh_history for user $1\n"
+                fi
             fi
+        else
+            echo -e "\nNo bash_history file found, skipping history migration for user $1\n"
         fi
     else
-        echo -e "\nNo bash_history file found, skipping history migration\n"
+        echo -e "\nNot copying bash_history to zsh_history, as --cp-hist or -c is not supplied for user $1\n"
     fi
-else
-    echo -e "\nNot copying bash_history to zsh_history, as --cp-hist or -c is not supplied\n"
-fi
-
-
-
+}
 
 # ========================================
 # Final Instructions
 # ========================================
-
 
 change_shell() {
     local user=$1
     if [ "$EUID" -eq 0 ]; then
         # Si se está ejecutando como root, cambia el shell del usuario especificado.
         echo -e "\nChanging default shell to zsh for user $user\n"
-        chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
+        chsh -s $(which zsh) "$user"
     else
         # Si no se está ejecutando como root, necesita sudo.
         echo -e "\nSudo access is needed to change default shell\n"
-        sudo chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
+        sudo chsh -s $(which zsh) "$user"
     fi
 }
 
@@ -242,23 +218,51 @@ get_local_user() {
     echo "$local_user"
 }
 
+# Crear .zshrc y qzshrc.zsh si no existen
+create_zshrc() {
+    local user_home=$(eval echo "~$1")
+    mkdir -p "$user_home/.config/qzsh"
+    cp -f "$SCRIPT_DIR/.zshrc" "$user_home/"
+    cp -f "$SCRIPT_DIR/qzshrc.zsh" "$user_home/.config/qzsh/"
+    echo -e "\nCopied .zshrc and qzshrc.zsh for user $1\n"
+}
+
 if [ "$noninteractive_flag" = true ]; then
     echo -e "Installation complete, exit terminal and enter a new zsh session\n"
     echo -e "Make sure to change zsh to default shell by running: chsh -s $(which zsh)"
     echo -e "In a new zsh session manually run: build-fzf-tab-module"
 else
+    # Obtén el directorio del script actual
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
     # Detectar el usuario actual
     current_user=$(whoami)
 
     # Cambiar el shell del usuario actual
     change_shell "$current_user"
     verify_shell_change "$current_user"
+    backup_zshrc "$current_user"
+    install_oh_my_zsh "$current_user"
+    copy_config_files "$current_user"
+    setup_directories "$current_user"
+    install_plugins "$current_user"
+    install_fonts "$current_user"
+    install_todo_cli "$current_user"
+    migrate_history "$current_user"
 
     # Detectar el usuario local no root
     local_user=$(get_local_user)
     if [ -n "$local_user" ] && [ "$current_user" == "root" ]; then
         change_shell "$local_user"
         verify_shell_change "$local_user"
+        backup_zshrc "$local_user"
+        install_oh_my_zsh "$local_user"
+        copy_config_files "$local_user"
+        setup_directories "$local_user"
+        install_plugins "$local_user"
+        install_fonts "$local_user"
+        install_todo_cli "$local_user"
+        migrate_history "$local_user"
     fi
 
     if [ $? -eq 0 ]; then
@@ -269,3 +273,4 @@ else
     fi
 fi
 exit
+
