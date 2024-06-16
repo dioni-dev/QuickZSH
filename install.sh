@@ -211,14 +211,11 @@ fi
 # Final Instructions
 # ========================================
 
-# ========================================
-# Final Instructions
-# ========================================
 
 change_shell() {
     local user=$1
     if [ "$EUID" -eq 0 ]; then
-        # Si se está ejecutando como root, cambia el shell del usuario root.
+        # Si se está ejecutando como root, cambia el shell del usuario especificado.
         echo -e "\nChanging default shell to zsh for user $user\n"
         chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
     else
@@ -226,6 +223,23 @@ change_shell() {
         echo -e "\nSudo access is needed to change default shell\n"
         sudo chsh -s $(which zsh) "$user" && /bin/zsh -i -c 'omz update'
     fi
+}
+
+verify_shell_change() {
+    local user=$1
+    local shell=$(getent passwd "$user" | cut -d: -f7)
+    if [ "$shell" == "$(which zsh)" ]; then
+        echo -e "\nShell successfully changed to zsh for user $user\n"
+    else
+        echo -e "\nFailed to change shell for user $user\n"
+    fi
+}
+
+# Detectar el usuario local no root
+get_local_user() {
+    # Esto asume que el primer usuario no root en el sistema es el usuario local
+    local_user=$(logname 2>/dev/null || who | awk '{print $1}' | sort | uniq | grep -v 'root' | head -n 1)
+    echo "$local_user"
 }
 
 if [ "$noninteractive_flag" = true ]; then
@@ -238,6 +252,14 @@ else
 
     # Cambiar el shell del usuario actual
     change_shell "$current_user"
+    verify_shell_change "$current_user"
+
+    # Detectar el usuario local no root
+    local_user=$(get_local_user)
+    if [ -n "$local_user" ] && [ "$current_user" == "root" ]; then
+        change_shell "$local_user"
+        verify_shell_change "$local_user"
+    fi
 
     if [ $? -eq 0 ]; then
         echo -e "Installation complete, exit terminal and enter a new zsh session"
