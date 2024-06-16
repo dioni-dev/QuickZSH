@@ -240,6 +240,7 @@ get_local_user() {
 # Crear .zshrc y qzshrc.zsh si no existen
 create_zshrc() {
     local user_home=$(eval echo "~$1")
+    mkdir -p "$user_home/.config/qzsh"
     cp -f "$SCRIPT_DIR/.zshrc" "$user_home/"
     cp -f "$SCRIPT_DIR/qzshrc.zsh" "$user_home/.config/qzsh/"
     echo -e "\nCopied .zshrc and qzshrc.zsh for user $1\n"
