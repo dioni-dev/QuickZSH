@@ -29,7 +29,7 @@ Your command prompt will look like this (easily customizable):
 
 ### Steps
 ```bash
-git clone https://github.com/jotyGill/QuickZSH
+git clone https://github.com/dioni-dev/QuickZSH
 cd QuickZSH
 ./install.sh -c  # only run with '-c' the first time, running multiple times will duplicate history entries
 ```
